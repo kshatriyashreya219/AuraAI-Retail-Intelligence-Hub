@@ -1,0 +1,185 @@
+# AuraAI Retail Intelligence Hub - Power BI Dashboard Specification
+
+## 1. Currency Standard
+
+- Conversion rate used: 1 USD = 83 INR
+- All sales and profit values in the dashboard must be displayed in INR using ₹.
+- Use currency format in Power BI as: ₹ #,##0.00;₹ -#,##0.00;₹ 0.00
+
+---
+
+## 2. Power Query M Code for Data Load and INR Conversion
+
+```powerquery
+let
+    Source = Csv.Document(
+        File.Contents("Dataset/Superstore.csv"),
+        [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]
+    ),
+    PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    ChangedTypes = Table.TransformColumnTypes(
+        PromotedHeaders,
+        {
+            {"Order ID", type text},
+            {"Order Date", type datetime},
+            {"Ship Date", type datetime},
+            {"Ship Mode", type text},
+            {"Customer ID", type text},
+            {"Customer Name", type text},
+            {"Segment", type text},
+            {"Country", type text},
+            {"City", type text},
+            {"State", type text},
+            {"Postal Code", Int64.Type},
+            {"Region", type text},
+            {"Product ID", type text},
+            {"Category", type text},
+            {"Sub-Category", type text},
+            {"Product Name", type text},
+            {"Sales", type number},
+            {"Quantity", Int64.Type},
+            {"Discount", type number},
+            {"Profit", type number}
+        }
+    ),
+    AddedSales_INR = Table.AddColumn(
+        ChangedTypes,
+        "Sales_INR",
+        each Number.From([Sales]) * 83,
+        type number
+    ),
+    AddedProfit_INR = Table.AddColumn(
+        AddedSales_INR,
+        "Profit_INR",
+        each Number.From([Profit]) * 83,
+        type number
+    )
+in
+    AddedProfit_INR
+```
+
+> This creates two new columns in INR:
+> - Sales_INR = Sales * 83
+> - Profit_INR = Profit * 83
+
+---
+
+## 3. DAX Measures with INR Formatting
+
+```DAX
+Total Sales ₹ =
+SUM('Superstore'[Sales_INR])
+
+Total Profit ₹ =
+SUM('Superstore'[Profit_INR])
+
+Profit Margin % =
+DIVIDE([Total Profit ₹], [Total Sales ₹], 0)
+
+Top Category =
+VAR TopCat =
+    TOPN(1, VALUES('Superstore'[Category]), [Total Sales ₹], DESC)
+RETURN
+    CONCATENATEX(TopCat, 'Superstore'[Category], ", ")
+
+Loss Category =
+VAR LossCat =
+    TOPN(
+        1,
+        SUMMARIZE(
+            FILTER(ALL('Superstore'[Category]), [Total Profit ₹] < 0),
+            'Superstore'[Category],
+            "ProfitValue", [Total Profit ₹]
+        ),
+        [ProfitValue],
+        ASC
+    )
+RETURN
+    CONCATENATEX(LossCat, 'Superstore'[Category], ", ")
+```
+
+### Suggested Format Strings for Visuals
+
+```DAX
+Format for money: ₹ #,##0.00;₹ -#,##0.00;₹ 0.00
+Format for %: 0.00%;-0.00%;0.00%
+```
+
+---
+
+## 4. Recommended Visuals to Create
+
+1. Sales by Category
+   - Visual Type: Bar Chart
+   - Axis: Category
+   - Values: Total Sales ₹
+   - Purpose: Compare revenue contribution by product category
+
+2. Profit by Category
+   - Visual Type: Clustered Bar Chart
+   - Axis: Category
+   - Values: Total Profit ₹
+   - Purpose: Identify highest and lowest profitability categories
+
+3. Sales by Region
+   - Visual Type: Map or Column Chart
+   - Axis: Region
+   - Values: Total Sales ₹
+   - Purpose: See which region contributes most to revenue
+
+4. Profit by Sub-Category
+   - Visual Type: Horizontal Bar Chart
+   - Axis: Sub-Category
+   - Values: Total Profit ₹
+   - Purpose: Highlight loss-making items such as Tables
+
+5. Monthly Sales Trend
+   - Visual Type: Line Chart
+   - Axis: Order Date (Month)
+   - Values: Total Sales ₹
+   - Purpose: Detect seasonality and monthly revenue patterns
+
+6. Profit Margin by Segment
+   - Visual Type: Donut or Matrix
+   - Axis: Segment
+   - Values: Profit Margin % and Total Profit ₹
+   - Purpose: Evaluate segment-wise profitability and operational efficiency
+
+---
+
+## 5. Business Insights Based on EDA
+
+### Insight 1
+Technology is the top-performing category with sales of ₹6.94 Cr, followed closely by Furniture at ₹6.15 Cr and Office Supplies at ₹5.96 Cr. This indicates strong demand for technology-driven products and a healthy opportunity to expand premium product lines in this category.
+
+### Insight 2
+The West region is the strongest revenue contributor. This suggests regional marketing, inventory allocation, and sales distribution should be prioritized in the West to maximize opportunity capture and maintain competitive advantage.
+
+### Insight 3
+The Tables sub-category is causing a loss of ₹14.7 Lakh, which is a material performance drag. This points to pricing, discounting, or cost management issues that need to be reviewed to prevent losses from recurring.
+
+---
+
+## 6. Conclusion
+
+The business should continue investing in the Technology category and the West region while tightening controls around loss-making sub-categories such as Tables. A focused strategy on profit protection, smarter discounting, and category-wise optimization will improve overall margin quality and strengthen the retail performance of AuraAI.
+
+---
+
+## 7. Dashboard Summary for Presentation
+
+- KPI Focus: Sales, Profit, Margin, Category, Region
+- Primary Goal: Grow revenue while improving operational profitability
+- Key Risk: Loss in Tables and other low-margin product clusters
+- Strategic Action: Optimize category mix, improve regional sales focus, and reduce losses in underperforming sub-categories
+
+---
+
+## 8. Final Recommended Drill-Down Strategy
+
+- Drill into Category → Sub-Category → Product Name
+- Compare Segment performance with Region and Category
+- Analyze monthly trends to identify discount-heavy periods
+- Review loss-making products for pricing and inventory correction
+
+This dashboard is ready to be used in Power BI for decision-making and business performance tracking.

@@ -1,0 +1,87 @@
+-- AuraAI-Retail Intelligence Hub
+-- SQL Analysis for Superstore Dataset
+-- All monetary values are converted to INR using 1 USD = 83 INR
+-- Use ₹ currency notation in reporting and interpretation
+
+-- 1. Create table with Sales_INR and Profit_INR computed columns
+CREATE TABLE superstore_inr AS
+SELECT
+    Category,
+    Sub_Category,
+    Region,
+    Sales,
+    Profit,
+    Sales * 83 AS Sales_INR,
+    Profit * 83 AS Profit_INR
+FROM read_csv_auto('Dataset/Superstore.csv');
+
+-- 2. Total Sales INR
+SELECT
+    SUM(Sales * 83) AS Total_Sales_INR
+FROM read_csv_auto('Dataset/Superstore.csv');
+
+-- 3. Total Profit INR
+SELECT
+    SUM(Profit * 83) AS Total_Profit_INR
+FROM read_csv_auto('Dataset/Superstore.csv');
+
+-- 4. Profit Margin %
+SELECT
+    SUM(Profit * 83) * 100.0 / NULLIF(SUM(Sales * 83), 0) AS Profit_Margin_pct
+FROM read_csv_auto('Dataset/Superstore.csv');
+
+-- 5. Top Category by Sales INR
+SELECT
+    Category,
+    SUM(Sales * 83) AS Sales_INR
+FROM read_csv_auto('Dataset/Superstore.csv')
+GROUP BY Category
+ORDER BY Sales_INR DESC
+LIMIT 1;
+
+-- 6. Loss-making Sub-Category
+SELECT
+    Sub_Category,
+    SUM(Profit * 83) AS Profit_INR
+FROM read_csv_auto('Dataset/Superstore.csv')
+GROUP BY Sub_Category
+HAVING SUM(Profit * 83) < 0
+ORDER BY Profit_INR ASC;
+
+-- 7. Region-wise performance
+SELECT
+    Region,
+    SUM(Sales * 83) AS Sales_INR,
+    SUM(Profit * 83) AS Profit_INR,
+    ROUND((SUM(Profit * 83) * 100.0) / NULLIF(SUM(Sales * 83), 0), 2) AS Profit_Margin_pct
+FROM read_csv_auto('Dataset/Superstore.csv')
+GROUP BY Region
+ORDER BY Sales_INR DESC;
+
+-- 8. Monthly trend of sales and profit in INR
+SELECT
+    STRFTIME('%Y-%m', Order_Date) AS Month,
+    SUM(Sales * 83) AS Sales_INR,
+    SUM(Profit * 83) AS Profit_INR
+FROM read_csv_auto('Dataset/Superstore.csv')
+GROUP BY STRFTIME('%Y-%m', Order_Date)
+ORDER BY Month ASC;
+
+-- 9. Category-wise sales and profit in INR
+SELECT
+    Category,
+    SUM(Sales * 83) AS Sales_INR,
+    SUM(Profit * 83) AS Profit_INR,
+    ROUND((SUM(Profit * 83) * 100.0) / NULLIF(SUM(Sales * 83), 0), 2) AS Profit_Margin_pct
+FROM read_csv_auto('Dataset/Superstore.csv')
+GROUP BY Category
+ORDER BY Sales_INR DESC;
+
+-- Business Interpretation
+-- Technology is the top category by sales with approximately ₹6.94 Cr.
+-- Tables is the biggest loss-making sub-category with a loss of about ₹14.7 Lakh.
+-- West is the top-performing region in terms of sales contribution.
+
+-- Final conclusion
+-- The business should prioritize Technology products and West region expansion while taking corrective action for loss-making sub-categories such as Tables.
+-- Improving pricing, discount strategy, and category-level profitability will improve overall margin and revenue efficiency in the retail business.
