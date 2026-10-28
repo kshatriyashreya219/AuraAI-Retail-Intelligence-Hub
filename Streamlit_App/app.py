@@ -216,8 +216,13 @@ def format_rupees(x):
 
 
 def get_aura_recommendations(profit_inr, loss_inr, return_loss_inr):
-    api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY", "") if hasattr(st, "secrets") else ""
-
+    # Safe API key fetch - no crash if secrets.toml missing
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        try:
+            api_key = st.secrets.get("OPENAI_API_KEY", "")
+        except Exception:
+            api_key = ""
     profit_value = float(profit_inr) if pd.notna(profit_inr) else 0.0
     loss_value = float(loss_inr) if pd.notna(loss_inr) else 0.0
     return_value = float(return_loss_inr) if pd.notna(return_loss_inr) else 0.0
